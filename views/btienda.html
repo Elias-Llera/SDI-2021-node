@@ -28,7 +28,8 @@
     {% for cancion in canciones %}
     <div class="col-xs-6 col-sm-6 col-md-4 col-lg-3">
         <div style="width: 200px">
-            <a href="/cancion/id"> <img src="/img/cancion1.png" alt="logo" />
+            <a href="/cancion/{{ cancion._id.toString() }}">
+                <img src="/portadas/{{ cancion._id.toString() }}.png" alt="logo" />
                 <!-- http://www.socicon.com/generator.php -->
                 <div class="wrap">{{ cancion.nombre }}</div>
                 <div class="small">Autor</div>
