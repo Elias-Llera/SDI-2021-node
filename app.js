@@ -28,13 +28,14 @@ routerUsuarioSession.use(function(req, res, next) {
         // dejamos correr la petición
         next();
     } else {
-        console.log("va a : "+req.session.destino)
+        console.log("va a : " + req.session.destino)
         res.redirect("/identificarse");
     }
 });
 
 //Aplicar router UsuarioSession
 app.use("/canciones/agregar",routerUsuarioSession);
+app.use("/comentarios/:cancion_id",routerUsuarioSession);
 app.use("/publicaciones",routerUsuarioSession);
 
 //routerAudios
@@ -68,6 +69,7 @@ app.set('crypto',crypto);
 require("./routes/rusuarios.js")(app, swig, gestorBD); //(app, param1, param2, ...)
 require("./routes/rcanciones.js")(app, swig, gestorBD); //(app, param1, param2, ...)
 require("./routes/rautores.js")(app, swig); //(app, param1, param2, ...)
+require("./routes/rcomentarios.js")(app, swig, gestorBD); //(app, param1, param2, ...)
 
 //lanzar el servidor
 app.listen(app.get('port'), function(){

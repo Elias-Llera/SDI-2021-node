@@ -1,7 +1,6 @@
 module.exports = function(app, swig, gestorBD) {
 
     app.get("/canciones", function(req, res) {
-
         let canciones = [ {
             "nombre" : "Blank space",
             "precio" : "1.2"
@@ -32,16 +31,24 @@ module.exports = function(app, swig, gestorBD) {
     });
 
     app.get('/cancion/:id', function (req, res) {
-        let criterio = { "_id" : gestorBD.mongo.ObjectID(req.params.id) };
-        gestorBD.obtenerCanciones(criterio,function(canciones){
+        let criterioCancion = { "_id" : gestorBD.mongo.ObjectID(req.params.id) };
+        let criterioComentario = { "cancion_id" : gestorBD.mongo.ObjectID(req.params.id) };
+        gestorBD.obtenerCanciones(criterioCancion,function(canciones){
             if ( canciones == null ){
                 res.send("Error al recuperar la canción.");
             } else {
-                let respuesta = swig.renderFile('views/bcancion.html',
-                    {
-                        cancion : canciones[0]
-                    });
-                res.send(respuesta);
+                gestorBD.obtenerComentarios(criterioComentario, function(comentarios){
+                    if(comentarios == null){
+                        res.send("Error al obtener los comentarios.")
+                    }else{
+                        let respuesta = swig.renderFile('views/bcancion.html',
+                            {
+                                cancion : canciones[0],
+                                comentarios : comentarios
+                            });
+                        res.send(respuesta);
+                    }
+                })
             }
         });
     });
@@ -145,7 +152,8 @@ module.exports = function(app, swig, gestorBD) {
     })
 
     app.post('/cancion/modificar/:id', function (req, res) {
-        let id = req.params.id; let criterio = { "_id" : gestorBD.mongo.ObjectID(id) };
+        let id = req.params.id;
+        let criterio = { "_id" : gestorBD.mongo.ObjectID(id) };
         let cancion = {
             nombre : req.body.nombre,
             genero : req.body.genero,
