@@ -35,11 +35,11 @@ module.exports = function(app, swig, gestorBD) {
         let criterioComentario = { "cancion_id" : gestorBD.mongo.ObjectID(req.params.id) };
         gestorBD.obtenerCanciones(criterioCancion,function(canciones){
             if ( canciones == null ){
-                res.send("Error al recuperar la canción.");
+                res.redirect("/tienda?mensaje=Error en la recuperar la cancion");
             } else {
                 gestorBD.obtenerComentarios(criterioComentario, function(comentarios){
                     if(comentarios == null){
-                        res.send("Error al obtener los comentarios.")
+                        res.redirect("/tienda?mensaje=Error al recuperar los comentarios");
                     }else{
                         let respuesta = swig.renderFile('views/bcancion.html',
                             {
@@ -74,19 +74,19 @@ module.exports = function(app, swig, gestorBD) {
         // Conectarse
         gestorBD.insertarCancion(cancion, function(id){
             if (id == null) {
-                res.send("Error al insertar canción");
+                res.redirect("/cancion?mensaje=Error al insertar la canción");
             } else {
                 if (req.files.portada != null) {
                     var imagen = req.files.portada;
                     imagen.mv('public/portadas/' + id + '.png', function(err) {
                         if (err) {
-                            res.send("Error al subir la portada");
+                            res.redirect("/cancion?mensaje=Error al subir la portada");
                         } else {
                             if (req.files.audio != null) {
                                 let audio = req.files.audio;
                                 audio.mv('public/audios/'+id+'.mp3', function(err) {
                                     if (err) {
-                                        res.send("Error al subir el audio");
+                                        res.redirect("/cancion?mensaje=Error al subir el audio");
                                     } else {
                                         res.redirect("/publicaciones");
                                     }
@@ -165,9 +165,9 @@ module.exports = function(app, swig, gestorBD) {
             } else {
                 paso1ModificarPortada(req.files, id, function (result) {
                     if( result == null){
-                        res.send("Error en la modificación");
+                        res.redirect("/publicaciones?mensaje=Error en la modificacion");
                     } else {
-                        res.send("Modificado");
+                        res.redirect("/publicaciones?mensaje=Modificado");
                     }
                 });
             }
