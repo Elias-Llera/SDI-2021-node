@@ -30,27 +30,6 @@ module.exports = function(app, swig, gestorBD) {
         res.send(String(respuesta))
     });
 
-    function puedeComprarCancion(idCancion){
-        if(cancion.autor == req.session.usuario) {
-            return false;
-        }
-        let criterio = { "usuario" : req.session.usuario};
-        let cancionesCompradasIds = [];
-        gestorBD.obtenerCompras(criterio, function (compras){
-            if(compras ==null) {
-                res.send("Error al obtener las canciones compradas.");
-            } else {
-                for(i = 0; i< compras.length; i++){
-                    cancionesCompradasIds.push(compras[i].cancionId)
-                }
-            }
-        });
-        if(cancionesCompradasIds.includes(idCancion)){
-            return false;
-        }
-        return true;
-    };
-
     app.get('/cancion/:id', function (req, res) {
         let criterioCancion = { "_id" : gestorBD.mongo.ObjectID(req.params.id) };
         let criterioComentario = { "cancion_id" : gestorBD.mongo.ObjectID(req.params.id) };
@@ -62,11 +41,17 @@ module.exports = function(app, swig, gestorBD) {
                     if(comentarios == null){
                         res.redirect("/tienda?mensaje=Error al recuperar los comentarios");
                     }else{
+                        let puedeComprar = false;
+                        puedeComprarCancion(req.session.usuario, canciones[0].id, function (comprar){
+                            if(comprar){
+                                puedeCompra=true
+                            }
+                        })
                         let respuesta = swig.renderFile('views/bcancion.html',
                             {
                                 cancion : canciones[0],
                                 comentarios : comentarios,
-                                puedeComprar : puedeComprarCancion(canciones[0].id)
+                                puedeComprar : puedeComprar
                             });
                         res.send(respuesta);
                     }
@@ -255,23 +240,45 @@ module.exports = function(app, swig, gestorBD) {
         });
     })
 
+    function puedeComprarCancion(usuario, idCancion, functionCallback){
+        let criterio_cancion_autor = {$and: [{"_id": cancionId}, {"autor": usuario}]};
+        let criterio_comprada = {$and: [{"cancionId": cancionId}, {"usuario": usuario}]}
+
+        gestorBD.obtenerCanciones(criterio_cancion_autor, function (canciones){
+            if(canciones == null || canciones.length>0) {
+                functionCallback(false);
+            } else {
+                gestorBD.obtenerCompras(criterio_comprada, function (compras){
+                    if(compras == null || compras.length>0){
+                        functionCallback(false);
+                    }else{
+                        functionCallback(true);
+                    }
+                })
+            }
+        });
+    };
+
     app.get('/cancion/comprar/:id', function (req, res) {
         let cancionId = gestorBD.mongo.ObjectID(req.params.id);
-        if(puedeComprarCancion(cancionId)) {
-            let compra = {
-                usuario: req.session.usuario,
-                cancionId: cancionId
-            }
-            gestorBD.insertarCompra(compra, function (idCompra) {
-                if (idCompra == null) {
-                    res.send(respuesta);
-                } else {
-                    res.redirect("/compras");
+        puedeComprarCancion(req.session.usuario, cancionId, function(puedeComprar){
+            if(puedeComprar){
+                let compra = {
+                    usuario: req.session.usuario,
+                    cancionId: cancionId
                 }
-            });
-        }else{
-            res.redirect("/tienda?mensaje=No se mpuede comprar la canción.");
-        }
+                gestorBD.insertarCompra(compra, function (idCompra) {
+                    if (idCompra == null) {
+                        res.send(respuesta);
+                    } else {
+                        res.redirect("/compras");
+                    }
+                });
+            }else{
+                res.redirect("/publicaciones?mensaje=No se puede comprar la canción")
+            }
+        });
+
     });
 
     app.get('/compras', function(req, res){
