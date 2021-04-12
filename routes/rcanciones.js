@@ -275,7 +275,11 @@ module.exports = function(app, swig, gestorBD) {
                     }
                 });
             }else{
-                res.redirect("/publicaciones?mensaje=No se puede comprar la canción")
+                let respuesta = swig.renderFile('views/error.html',
+                    {
+                        mensaje : "No se puede comprar una canción ya comprada o de la que eres autor."
+                    });
+                res.send(respuesta);
             }
         });
 
