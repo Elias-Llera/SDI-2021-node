@@ -30,6 +30,27 @@ module.exports = function(app, swig, gestorBD) {
         res.send(String(respuesta))
     });
 
+    function puedeComprarCancion(idCancion){
+        if(cancion.autor == req.session.usuario) {
+            return false;
+        }
+        let criterio = { "usuario" : req.session.usuario};
+        let cancionesCompradasIds = [];
+        gestorBD.obtenerCompras(criterio, function (compras){
+            if(compras ==null) {
+                res.send("Error al obtener las canciones compradas.");
+            } else {
+                for(i = 0; i< compras.length; i++){
+                    cancionesCompradasIds.push(compras[i].cancionId)
+                }
+            }
+        });
+        if(cancionesCompradasIds.includes(idCancion)){
+            return false;
+        }
+        return true;
+    };
+
     app.get('/cancion/:id', function (req, res) {
         let criterioCancion = { "_id" : gestorBD.mongo.ObjectID(req.params.id) };
         let criterioComentario = { "cancion_id" : gestorBD.mongo.ObjectID(req.params.id) };
@@ -44,7 +65,8 @@ module.exports = function(app, swig, gestorBD) {
                         let respuesta = swig.renderFile('views/bcancion.html',
                             {
                                 cancion : canciones[0],
-                                comentarios : comentarios
+                                comentarios : comentarios,
+                                puedeComprar : puedeComprarCancion(canciones[0].id)
                             });
                         res.send(respuesta);
                     }
@@ -235,17 +257,21 @@ module.exports = function(app, swig, gestorBD) {
 
     app.get('/cancion/comprar/:id', function (req, res) {
         let cancionId = gestorBD.mongo.ObjectID(req.params.id);
-        let compra = {
-            usuario : req.session.usuario,
-            cancionId : cancionId
-        }
-        gestorBD.insertarCompra(compra ,function(idCompra){
-            if ( idCompra == null ){
-                res.send(respuesta);
-            } else {
-                res.redirect("/compras");
+        if(puedeComprarCancion(cancionId)) {
+            let compra = {
+                usuario: req.session.usuario,
+                cancionId: cancionId
             }
-        });
+            gestorBD.insertarCompra(compra, function (idCompra) {
+                if (idCompra == null) {
+                    res.send(respuesta);
+                } else {
+                    res.redirect("/compras");
+                }
+            });
+        }else{
+            res.redirect("/tienda?mensaje=No se mpuede comprar la canción.");
+        }
     });
 
     app.get('/compras', function(req, res){

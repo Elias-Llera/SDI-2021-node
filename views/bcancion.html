@@ -13,8 +13,13 @@
 			 <h2>{{ cancion.nombre }}</h2>
 			 <p>{{ cancion.autor }}</p>
 			 <p>{{ cancion.genero }}</p>
-			  <a class="btn btn-primary pull-right" href="/cancion/comprar/{{cancion._id.toString()}}">{{ cancion.precio }} €</a>
-			 <!-- Cambiar el precio por "reproducir" si ya está comprada -->
+			  {% if puedeComprar %}
+			  	<a class="btn btn-primary pull-right" href="/cancion/comprar/{{cancion._id.toString()}}">{{ cancion.precio }} €</a>
+			  {% else %}
+			 	 <audio controls>
+				  	<source src="/audios/{{ cancion._id.toString() }}.mp3" type="audio/mpeg">
+			 	 </audio>
+			  {% endif %}}
 		  </div>
 		</div>
 	  </div>
