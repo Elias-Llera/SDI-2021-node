@@ -1,12 +1,14 @@
 <div id="widget-canciones" >
+    <input type="text" class="form-control" placeholder="Filtrar por nombre"
+           id="filtro-nombre"/>
     <button class="btn btn-primary" onclick="widgetAgregar()">Nueva Canción</button>
     <button class="btn" onclick="cargarCanciones()" >Actualizar</button>
     <table class="table table-hover">
         <thead>
             <tr>
-                <th>Nombre</th>
+                <th><a onclick="ordenarPorNombre()">Nombre</a></th>
                 <th>Genero</th>
-                <th>Precio</th>
+                <th><a onclick="ordenarPorPrecio()">Precio</a></th>
                 <th class="col-md-1"></th>
             </tr>
         </thead>
@@ -17,8 +19,12 @@
     </table>
 </div>
 
+
 <script>
+    window.history.pushState("", "", "/cliente.html?w=canciones");
+
     var canciones;
+
     function cargarCanciones(){
         $.ajax({
             url: URLbase + "/cancion",
@@ -34,6 +40,7 @@
             }
         });
     }
+
     function actualizarTabla(cancionesMostrar){
         $( "#tablaCuerpo" ).empty(); // Vaciar la tabla
         for (i = 0; i < cancionesMostrar.length; i++) {
@@ -77,5 +84,43 @@
     function widgetAgregar() {
         $( "#contenedor-principal" ).load( "widget-agregar.html");
     }
+
+    var precioDsc = true;
+    function ordenarPorPrecio(){
+        if (precioDsc){
+            canciones.sort(function(a, b) {
+                return parseFloat(a.precio) - parseFloat(b.precio);
+            });
+        } else {
+            canciones.sort(function(a, b) {
+                return parseFloat(b.precio) - parseFloat(a.precio);
+            });
+        }
+        actualizarTabla(canciones);
+        precioDsc = !precioDsc; //invertir
+    }
+
+    function ordenarPorNombre(){
+        canciones.sort(function(a, b) {
+            if(a.nombre > b.nombre )
+                return 1;
+            if(a.nombre < b.nombre )
+                return -1;
+            return 0;
+        });
+        actualizarTabla(canciones);
+    }
+
+    $('#filtro-nombre').on('input',function(e){
+        var cancionesFiltradas = [];
+        var nombreFiltro = $("#filtro-nombre").val();
+        for (i = 0; i < canciones.length; i++) {
+            if (canciones[i].nombre.indexOf(nombreFiltro) != -1 ){
+                cancionesFiltradas.push(canciones[i]);
+            }
+        }
+        actualizarTabla(cancionesFiltradas);
+    });
+
     cargarCanciones();
 </script>

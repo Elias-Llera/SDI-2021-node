@@ -18,7 +18,9 @@
 </div>
 
 <script>
-    $("#boton-login").click(function (){
+    window.history.pushState("", "", "/cliente.html?w=login");
+
+    $("#boton-login").click(function () {
         $.ajax({
             url : URLbase + "/autenticar",
             type : "POST",
@@ -30,9 +32,11 @@
             success : function(respuesta){
                 console.log(respuesta.token); // <- prueba
                 token = respuesta.token;
+                Cookies.set('token', respuesta.token)
                 $("#contenedor-principal").load("widget-canciones.html");
             },
             error : function(error){
+                Cookies.remove('token');
                 $("#widget-login")
                 .prepend("<div class= 'alert alert-danger'>Usuario no encontrado</div>")
             }
