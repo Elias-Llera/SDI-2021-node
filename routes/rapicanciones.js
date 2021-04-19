@@ -31,39 +31,101 @@ module.exports = function(app, gestorBD) {
 
     app.delete("/api/cancion/:id", function(req, res) {
         let criterio = { "_id" : gestorBD.mongo.ObjectID(req.params.id)}
-        gestorBD.eliminarCancion(criterio,function(canciones){
-            if ( canciones == null ){
-                res.status(500); res.json({
-                    error : "se ha producido un error"
+        let cancionID = gestorBD.mongo.ObjectID(req.params.id);
+        let usuario = res.usuario;
+        errors = new Array();
+        validarUserEsAutor(usuario, cancionID, function(isAutor){
+            if (isAutor){
+                gestorBD.eliminarCancion(criterio,function(canciones){
+                    if ( canciones == null ){
+                        res.status(500); res.json({
+                            error : "se ha producido un error al intentar eliminar la canción."
+                        })
+                    } else {
+                        res.status(200);
+                        res.send( JSON.stringify(canciones) );
+                    }
+                });
+            } else{
+                res.status(413);
+                errors.push("El usuario no tiene permisos para eliminar esta canción.");
+                res.json({
+                    errores : errors
                 })
-            } else {
-                res.status(200);
-                res.send( JSON.stringify(canciones) );
+            }
+        })
+    });
+
+    function validarUserEsAutor(usuario, cancionId, functionCallback){
+        let criterio = {$and: [{"_id": cancionId}, {"autor": usuario}]};
+        let isAutor = true;
+
+        gestorBD.obtenerCanciones(criterio, function (canciones){
+            if(canciones == null || canciones.length>0) {
+                isAutor = false;
             }
         });
-    });
+
+        functionCallback(isAutor);
+    }
 
     app.post("/api/cancion", function(req, res) {
         let cancion = {
             nombre : req.body.nombre,
             genero : req.body.genero,
             precio : req.body.precio,
+            autor: res.usuario
         }
         // ¿Validar nombre, genero, precio?
-        gestorBD.insertarCancion(cancion, function(id){
-            if (id == null) {
-                res.status(500);
+        validarCrearCancion(cancion, function(errors){
+            if(errors!== null && errors.length>0){
+                res.status(403);
                 res.json({
-                    error : "se ha producido un error"
+                    errores : errors
                 })
-            } else {
-                res.status(201);
-                res.json({
-                    mensaje : "canción insertada", _id : id
-                })
+            } else{
+                gestorBD.insertarCancion(cancion, function(id){
+                    if (id == null) {
+                        res.status(500);
+                        res.json({
+                            error : "se ha producido un error"
+                        })
+                    } else {
+                        res.status(201);
+                        res.json({
+                            mensaje : "canción insertada",
+                            _id : id
+                        })
+                    }
+                });
             }
         });
+
     });
+
+    function validarCrearCancion(cancion, functionCallback){
+        let errors = new Array();
+        if(cancion.nombre === null || typeof  cancion.nombre ==='undefined' || cancion.nombre.length == 0){
+            errors.push("El nombre de la canción no puede estar vacío");
+        }
+        if(cancion.nombre.length > 50){
+            errors.push("El nombre de la canción no puede tener más de 50 caracteres");
+        }
+        if(cancion.genero === null || typeof  cancion.genero ==='undefined' || cancion.genero.length == 0){
+            errors.push("El genero de la canción no puede estar vacío");
+        }
+        if(cancion.precio === null || typeof  cancion.precio ==='undefined'){
+            errors.push("El precio de la canción no puede estár vacío.");
+        }
+        if(cancion.precio < 0){
+            errors.push("El precio de la canción no puede ser negativo.");
+        }
+        if(errors.length <= 0){
+            functionCallback(null);
+        } else {
+            functionCallback(errors);
+        }
+    }
 
     app.put("/api/cancion/:id", function(req, res) {
         let criterio = { "_id" : gestorBD.mongo.ObjectID(req.params.id) };
@@ -74,19 +136,44 @@ module.exports = function(app, gestorBD) {
             cancion.genero = req.body.genero;
         if ( req.body.precio != null)
             cancion.precio = req.body.precio;
-        gestorBD.modificarCancion(criterio, cancion, function(result) {
-            if (result == null) {
-                res.status(500);
+
+        validarActualizarCancion(cancion, function (errors){
+            if(errors!== null && errors.length>0){
+                res.status(403);
                 res.json({
-                    error : "se ha producido un error"
+                    errores : errors
                 })
             } else {
-                res.status(200); res.json({
-                    mensaje : "canción modificada", _id : req.params.id
-                })
+                gestorBD.modificarCancion(criterio, cancion, function(result) {
+                    if (result == null) {
+                        res.status(500);
+                        res.json({
+                            error : "se ha producido un error"
+                        })
+                    } else {
+                        res.status(200); res.json({
+                            mensaje : "canción modificada", _id : req.params.id
+                        })
+                    }
+                });
             }
-        });
+        })
     });
+
+    function validarActualizarCancion(cancion, functionCallback){
+        let errors = new Array();
+        if(cancion.nombre.length >50){
+            errors.push("El nombre de la canción no puede tener más de 50 caracteres.")
+        }
+        if(cancion.precio < 0){
+            errors.push("El precio de la canción no puede ser negativo.")
+        }
+        if(errors.length <= 0){
+            functionCallback(null);
+        } else {
+            functionCallback(errors);
+        }
+    }
 
     app.post("/api/autenticar/", function(req, res){
         let seguro = app.get("crypto").createHmac('sha256', app.get('clave'))
